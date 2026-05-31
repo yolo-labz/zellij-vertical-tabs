@@ -1,0 +1,12 @@
+[package]
+name = "zellij-vertical-tabs"
+version = "0.1.0"
+edition = "2024"
+description = "A robust vertical tab bar plugin for zellij"
+license = "MIT"
+
+[dependencies]
+zellij-tile = "0.44.3"
+unicode-width = "0.2"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+chrono-tz = "0.10"

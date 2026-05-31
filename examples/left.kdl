@@ -1,0 +1,14 @@
+// Sidebar on the LEFT: plugin pane first, children second.
+layout {
+    default_tab_template {
+        pane split_direction="vertical" {
+            pane size=24 borderless=true {
+                plugin location="file:./result/lib/zellij-vertical-tabs.wasm"
+            }
+            children
+        }
+        pane size=1 borderless=true { plugin location="status-bar" }
+    }
+    tab name="🐧 one" { pane }
+    tab name="🤖 two" { pane }
+}
