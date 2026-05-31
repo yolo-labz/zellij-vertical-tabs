@@ -18,7 +18,7 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      # nixpkgs rustc ships no wasm32-wasip1 std; fenix provides the target.
+      # nixpkgs rustc ships no wasm32-wasip1 std; fenix supplies the target.
       toolchain = fenix.packages.${system}.combine [
         fenix.packages.${system}.stable.rustc
         fenix.packages.${system}.stable.cargo
@@ -30,14 +30,22 @@
       };
     in {
       # `nix build` -> result/lib/zellij-vertical-tabs.wasm
-      packages.default = rustPlatform.buildRustPackage {
+      #
+      # Built WASM-ONLY on purpose: zellij-tile pulls zellij-utils (curl/openssl
+      # etc.) which only compile for the host. We never compile the host target,
+      # so those host-only crates are vendored-but-not-built. cargoSetupHook
+      # vendors deps from Cargo.lock and writes an offline cargo config.
+      packages.default = pkgs.stdenv.mkDerivation {
         pname = "zellij-vertical-tabs";
         version = "0.1.0";
         src = ./.;
-        cargoLock.lockFile = ./Cargo.lock;
-        # build the wasm guest, not a host binary
-        CARGO_BUILD_TARGET = "wasm32-wasip1";
-        doCheck = false;
+        cargoDeps = rustPlatform.importCargoLock {lockFile = ./Cargo.lock;};
+        nativeBuildInputs = [toolchain rustPlatform.cargoSetupHook];
+        buildPhase = ''
+          runHook preBuild
+          cargo build --release --target wasm32-wasip1 --offline
+          runHook postBuild
+        '';
         installPhase = ''
           runHook preInstall
           mkdir -p $out/lib
@@ -51,15 +59,11 @@
         };
       };
 
-      # expose the wasm path directly for downstream layouts (e.g. the NixOS flake)
-      packages.wasm = self.packages.${system}.default;
-
       devShells.default = pkgs.mkShell {
         packages = [toolchain pkgs.zellij pkgs.wabt];
         shellHook = ''
           echo "zellij-vertical-tabs dev shell"
           echo "  cargo build --release --target wasm32-wasip1"
-          echo "  zellij --layout examples/right.kdl   # smoke test"
         '';
       };
 
