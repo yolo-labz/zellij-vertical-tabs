@@ -12,6 +12,6 @@ layout {
         pane size=1 borderless=true { plugin location="status-bar" }
     }
     tab name="🐧 one" { pane }
-    tab name="🤖 two" { pane }
+    tab name="two" { pane }
     tab name="💰 three" { pane }
 }
