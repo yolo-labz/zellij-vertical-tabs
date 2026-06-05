@@ -3,3 +3,13 @@
 /result-*
 *.wasm
 .direnv
+
+# AI tooling config — keep local, never commit
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+/.claude/
+/.cursor/
+.aider*
+/.specify/
+.github/copilot-instructions.md
