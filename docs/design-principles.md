@@ -11,8 +11,10 @@ feature that risks a guest trap is rejected.
 
 - **Never subscribe to `EventType::PaneUpdate`** (or other high-frequency
   events: `InputReceived`, `PaneRenderReport`). They flood the guest and crash
-  it under load. A tab bar only needs `TabUpdate`, `ModeUpdate`, `Mouse`,
-  `Timer`, `PermissionRequestResult`.
+  it under load. The sidebar only needs `TabUpdate`, `ModeUpdate`, `Mouse`,
+  `Timer`, `PermissionRequestResult`. The picker mode adds `Key` — also
+  low-frequency, since `Key` fires only while the (selectable, floating) picker
+  pane is focused. Anything that arrives on every redraw stays banned.
 - **Rendering is char/width-safe.** No byte-slicing; truncate via `char`
   iteration + `unicode-width`. Emoji must never panic the renderer.
 - **All index/scroll arithmetic uses `saturating_*` + `.min()` clamps.** No
