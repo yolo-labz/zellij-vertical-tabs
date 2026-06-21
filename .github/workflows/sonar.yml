@@ -7,6 +7,10 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # Least-privilege baseline (zizmor undocumented-permissions wants a rationale).
 permissions:
   contents: read       # checkout source for the scan.
@@ -15,7 +19,7 @@ permissions:
 jobs:
   scan:
     name: SonarQube scan
-    runs-on: [self-hosted, dokku]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
@@ -50,6 +54,3 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
-          # Pin JAVA_TOOL_OPTIONS so the inherited vm103 host JVM flags
-          # cannot stop sonar-scanner from starting (matches the wa lane).
-          JAVA_TOOL_OPTIONS: "-XX:+UnlockDiagnosticVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=75"
