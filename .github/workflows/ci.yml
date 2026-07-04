@@ -1,0 +1,87 @@
+name: CI
+
+# Merge gate for the zellij plugin. The crate compiles ONLY for
+# wasm32-wasip1 — zellij-tile transitively pulls zellij-utils (openssl/curl)
+# which cannot build for the host — so every cargo step targets wasm.
+# This is the repo's first Rust compile/lint gate → clippy ships strict
+# (-D warnings) from day 1.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+# Deny-all at workflow scope; each job re-grants the minimum it needs.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - name: rustfmt check
+        run: cargo fmt --check
+
+  clippy-build:
+    name: clippy + build (wasm32-wasip1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain + wasm target (rust-toolchain.toml)
+        run: |
+          rustup show active-toolchain || rustup toolchain install
+          rustup target add wasm32-wasip1
+
+      - name: Cache cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            target
+          key: cargo-${{ runner.os }}-wasm32-wasip1-${{ hashFiles('Cargo.lock') }}
+          restore-keys: cargo-${{ runner.os }}-wasm32-wasip1-
+
+      - name: Clippy (deny warnings)
+        run: cargo clippy --target wasm32-wasip1 --all-targets --locked -- -D warnings
+
+      - name: Build (release wasm)
+        run: cargo build --release --target wasm32-wasip1 --locked
+
+      - name: Plugin artifact exists
+        run: test -f target/wasm32-wasip1/release/zellij-vertical-tabs.wasm
