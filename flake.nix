@@ -22,6 +22,9 @@
       toolchain = fenix.packages.${system}.combine [
         fenix.packages.${system}.stable.rustc
         fenix.packages.${system}.stable.cargo
+        # clippy + rustfmt so the dev shell reproduces the ci.yml gate.
+        fenix.packages.${system}.stable.clippy
+        fenix.packages.${system}.stable.rustfmt
         fenix.packages.${system}.targets.wasm32-wasip1.stable.rust-std
       ];
       rustPlatform = pkgs.makeRustPlatform {
