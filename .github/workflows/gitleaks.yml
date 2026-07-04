@@ -1,0 +1,88 @@
+# Secret scanning on every PR diff + full-history scan on push. Binary install
+# (not the official Action — it needs a paid license for org-owned repos),
+# sha256-verified per the org rule: never fetch-then-run unpinned (Scorecard
+# Pinned-Dependencies "downloadThenRun" — precedent: wa#52 syft install).
+
+name: gitleaks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read         # checkout the repo source for the scan.
+      security-events: write # upload gitleaks SARIF to the Security tab.
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout (full history so every commit on the PR is scanned)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install gitleaks (sha256-pinned release asset)
+        env:
+          VERSION: "8.21.4"
+          SHA256: "3e169b49f7c519a269b8ff653c5248a8c82e8c74baaf035286915047200386a9"
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          gh release download "v${VERSION}" \
+            --repo gitleaks/gitleaks \
+            --pattern "gitleaks_${VERSION}_linux_x64.tar.gz" \
+            --output /tmp/gitleaks.tar.gz
+          echo "${SHA256}  /tmp/gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf /tmp/gitleaks.tar.gz -C "$HOME/.local/bin" gitleaks
+          chmod +x "$HOME/.local/bin/gitleaks"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/gitleaks" version
+
+      - name: gitleaks scan (PR diff)
+        # SHAs come from GitHub's own commit DB, not user input; routed
+        # through env: anyway per the workflow-hardening convention.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -eu
+          gitleaks git \
+            --redact \
+            --no-banner \
+            --report-format sarif \
+            --report-path gitleaks.sarif \
+            --log-opts="$BASE_SHA..$HEAD_SHA"
+
+      - name: gitleaks scan (full repo on push)
+        if: github.event_name != 'pull_request'
+        run: |
+          set -eu
+          gitleaks git \
+            --redact \
+            --no-banner \
+            --report-format sarif \
+            --report-path gitleaks.sarif
+
+      - name: Upload SARIF
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: gitleaks.sarif

@@ -1,0 +1,32 @@
+# OSV-Scanner on Cargo.lock — covers RustSec advisories (the audit's
+# "cargo-audit" line) via the org-standard tool (canon: OSV-Scanner in the
+# FOSS-first stack). Reusable workflow, SHA-pinned.
+
+name: OSV-Scanner
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly Monday 06:30 UTC — offset from the fand 06:00 run.
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  scan:
+    name: OSV-Scanner
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    permissions:
+      contents: read         # read lockfiles for the scan.
+      security-events: write # upload OSV SARIF to code scanning.
+      actions: read          # reusable workflow reads run metadata.
+    with:
+      scan-args: |-
+        --recursive
+        --skip-git
+        ./
+      upload-sarif: true
