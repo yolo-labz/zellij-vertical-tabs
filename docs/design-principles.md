@@ -12,11 +12,20 @@ feature that risks a guest trap is rejected.
 - **Never subscribe to `EventType::PaneUpdate`** (or other high-frequency
   events: `InputReceived`, `PaneRenderReport`). They flood the guest and crash
   it under load. A tab bar only needs `TabUpdate`, `ModeUpdate`, `Mouse`,
-  `Timer`, `PermissionRequestResult`.
+  `Timer`, `Visible`, `PermissionRequestResult`.
 - **Rendering is char/width-safe.** No byte-slicing; truncate via `char`
   iteration + `unicode-width`. Emoji must never panic the renderer.
 - **All index/scroll arithmetic uses `saturating_*` + `.min()` clamps.** No
   unchecked indexing or subtraction.
+- **One instance per tab → gate the tick on visibility.** The layout's
+  `default_tab_template` instantiates this plugin in every tab; N tabs = N wasm
+  instances. `Event::Visible` (zellij sends it to tiled plugin panes on tab
+  focus transitions) parks the 1 Hz clock in hidden instances — steady-state is
+  ~1 armed timer per session instead of N. The tick chain also **self-heals**
+  (arm-timestamp dead-chain detection on other events, duplicate chains
+  collapsed by a sub-second guard): a single dropped Timer event previously
+  froze that instance's clock forever, visible as sidebars disagreeing across
+  tabs.
 
 ## Minimal surface
 

@@ -1,7 +1,9 @@
 // Sophisticated, robust vertical tab sidebar for zellij — Catppuccin Mocha.
 // Framed panel + emoji header (session/date/time/mode) + scrolling tab list
 // (active always visible) + per-tab bell/sync flair + footer w/ overflow counts.
-// Safe events only (TabUpdate/ModeUpdate/Timer/Mouse) — never PaneUpdate.
+// Safe events only (TabUpdate/ModeUpdate/Timer/Mouse/Visible) — never PaneUpdate.
+// The 1 Hz clock ticks ONLY in the visible instance (Visible-gated) and the
+// chain self-heals off other events if a Timer is ever dropped.
 use chrono::Utc;
 use chrono_tz::Tz;
 use std::collections::BTreeMap;
@@ -31,6 +33,15 @@ struct State {
     tz: Tz,
     granted: bool,
     armed: bool,
+    // One plugin instance runs per tab (default_tab_template), so with N tabs
+    // there are N clocks. Gate the 1 Hz tick on pane visibility: zellij sends
+    // Event::Visible(true/false) to tiled plugin panes as their tab gains or
+    // loses focus, so only the on-screen instance keeps a timer armed. Default
+    // is true because a never-yet-visited tab receives no Visible event at
+    // all (zellij only emits it on focus transitions) — those instances tick
+    // like today until their first visit, then park when hidden.
+    visible: bool,
+    last_arm_ms: i64, // when the tick was last armed — drives dead-chain detection
     scroll_start: usize, // first visible tab index (set in render, read on click)
     tab_area_rows: usize,
 }
@@ -43,6 +54,8 @@ impl Default for State {
             tz: chrono_tz::UTC,
             granted: false,
             armed: false,
+            visible: true,
+            last_arm_ms: 0,
             scroll_start: 0,
             tab_area_rows: 0,
         }
@@ -67,6 +80,7 @@ impl ZellijPlugin for State {
             EventType::ModeUpdate,
             EventType::Mouse,
             EventType::Timer,
+            EventType::Visible,
             EventType::PermissionRequestResult,
         ]);
         set_selectable(false);
@@ -81,6 +95,7 @@ impl ZellijPlugin for State {
                 true
             }
             Event::TabUpdate(tabs) => {
+                self.heal_timer();
                 if self.tabs != tabs {
                     self.tabs = tabs;
                     true
@@ -89,14 +104,35 @@ impl ZellijPlugin for State {
                 }
             }
             Event::ModeUpdate(mi) => {
+                self.heal_timer();
                 self.session = mi.session_name.unwrap_or_default();
                 self.mode = format!("{:?}", mi.mode).to_uppercase();
                 true
             }
+            // Visibility transitions drive the clock lifecycle: on show, force a
+            // fresh render (correct clock instantly, even if the timer died while
+            // hidden) and restart the tick; on hide, let the in-flight timer park
+            // itself in the Timer arm below.
+            Event::Visible(v) => {
+                self.visible = v;
+                if v {
+                    self.heal_timer();
+                }
+                v
+            }
             Event::Timer(_) => {
+                // Firing <900 ms after the last arm means a duplicate chain
+                // (heal_timer false positive) — let this one die unrendered.
+                if Utc::now().timestamp_millis() - self.last_arm_ms < 900 {
+                    return false;
+                }
                 self.armed = false;
-                self.arm();
-                true
+                if self.visible {
+                    self.arm();
+                    true
+                } else {
+                    false
+                }
             }
             Event::Mouse(Mouse::LeftClick(row, _)) => {
                 let r = row as usize;
@@ -265,6 +301,24 @@ impl State {
         if !self.armed {
             set_timeout(1.0);
             self.armed = true;
+            self.last_arm_ms = Utc::now().timestamp_millis();
+        }
+    }
+    // Self-healing tick. If a Timer event is ever lost, `armed` sticks true and
+    // the chain dies — that instance's clock freezes, which is the observed
+    // cross-tab "sidebar out of sync". A pending timer and a dead one look the
+    // same from in here, so use the arm timestamp: >5s without the ~1s timer
+    // firing means the chain is dead — restart it. A false positive (zellij
+    // merely delayed the event >5s) briefly creates a duplicate chain, which
+    // the 900 ms guard in the Timer arm collapses within one tick.
+    fn heal_timer(&mut self) {
+        if !self.visible {
+            return;
+        }
+        let now_ms = Utc::now().timestamp_millis();
+        if !self.armed || now_ms - self.last_arm_ms > 5000 {
+            self.armed = false;
+            self.arm();
         }
     }
     fn switch_rel(&mut self, d: i64) {
