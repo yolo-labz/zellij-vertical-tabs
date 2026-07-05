@@ -26,6 +26,16 @@ feature that risks a guest trap is rejected.
   collapsed by a sub-second guard): a single dropped Timer event previously
   froze that instance's clock forever, visible as sidebars disagreeing across
   tabs.
+- **Per-tab is NOT a choice — zellij has no cross-tab pane (researched
+  04/07/2026, don't re-litigate).** Panes are owned by a single tab
+  (`Screen → Tab → Pane`); the built-in tab-bar/status-bar and zjstatus all run
+  one instance per tab; background plugins (`load_plugins`) cannot render a
+  pane; pinned floating panes are per-tab too. Only the wasm *bytecode* is
+  cached across instances — each pane gets its own linear memory. The
+  author-once/appears-everywhere UI is an unshipped upstream proposal (the
+  `viewport` KDL node, [zellij#4646](https://github.com/zellij-org/zellij/issues/4646));
+  revisit this architecture if/when that lands. Until then, the design above
+  (cheap parked instances) is the correct shape.
 
 ## Minimal surface
 

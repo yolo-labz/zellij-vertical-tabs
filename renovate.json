@@ -1,0 +1,36 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard"
+  ],
+  "schedule": ["before 06:00 on monday"],
+  "labels": ["dependencies"],
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "matchManagers": ["cargo"],
+      "matchPackageNames": ["zellij-tile"],
+      "groupName": "zellij-tile",
+      "prBodyNotes": [
+        "zellij-tile is pinned to the runtime zellij version (currently 0.44.x). Only bump alongside the fleet's zellij upgrade, and test the built wasm against the matching zellij before merging."
+      ]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "cargo (non-zellij-tile)",
+      "excludePackageNames": ["zellij-tile"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions",
+      "pinDigests": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  }
+}
