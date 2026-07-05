@@ -26,3 +26,18 @@ Open a [GitHub security advisory](https://github.com/yolo-labz/zellij-vertical-t
 The only supported artifact is the `.wasm` built from this repo's `main` via
 `nix build` / `cargo build --release --target wasm32-wasip1`. Forks and
 locally-patched builds are out of scope.
+
+## Accepted advisories (transitive, unreachable — revisit on zellij-tile bump)
+
+These RustSec advisories sit in the lockfile via `zellij-tile 0.44.3 →
+zellij-utils → clap 3`, which is pinned to the runtime zellij version by
+design (see `renovate.json`); they are not fixable here without unpinning:
+
+| Advisory | Crate | Why accepted |
+|---|---|---|
+| RUSTSEC-2024-0375 | `atty` (unmaintained) | clap-3 CLI machinery; a zellij wasm plugin never runs argument parsing, so the code path is dead in the shipped artifact |
+| RUSTSEC-2021-0145 | `atty` (unaligned read) | Windows-only unsound path, doubly unreachable under `wasm32-wasip1` |
+| RUSTSEC-2024-0370 | `proc-macro-error` (unmaintained) | proc-macro — compile-time only, never part of the artifact |
+
+Trigger to revisit: any `zellij-tile` version bump (upstream zellij moved to
+clap 4 after 0.44, which drops `atty`/`proc-macro-error`).
