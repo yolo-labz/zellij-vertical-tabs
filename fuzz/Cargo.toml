@@ -1,0 +1,26 @@
+[package]
+name = "zellij-vertical-tabs-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+unicode-width = "0.2"
+
+[dependencies.zellij-vertical-tabs]
+path = ".."
+
+# standalone workspace — keeps the fuzz crate out of the parent lockfile and
+# out of the reproducible wasm build (flake vendors the parent Cargo.lock only)
+[workspace]
+
+[[bin]]
+name = "render_core"
+path = "fuzz_targets/render_core.rs"
+test = false
+doc = false
+bench = false

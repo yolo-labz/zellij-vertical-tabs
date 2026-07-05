@@ -39,9 +39,21 @@ feature that risks a guest trap is rejected.
 
 ## Minimal surface
 
-Single file (`src/main.rs`), no heavy dependencies beyond `zellij-tile`,
-`unicode-width`, and `chrono` (+ `chrono-tz`). Every added widget must justify
-its event subscription against the stability rule above.
+Three small files: `src/lib.rs` (pure rendering core — host-buildable),
+`src/plugin.rs` (the plugin, wasm-only), `src/main.rs` (entrypoint glue). No
+heavy dependencies beyond `zellij-tile`, `unicode-width`, and `chrono`
+(+ `chrono-tz`) — all zellij/chrono deps are wasm-target-gated so the host
+build stays tiny. Every added widget must justify its event subscription
+against the stability rule above.
+
+## Tested invariants
+
+The two functions that carry invariants 2 and 3 (`trunc`, `scroll_window`)
+live in the pure core and are **property-tested** (`cargo test`, proptest:
+width budget, char-boundary prefix, viewport bounds/containment) and
+**fuzzed** (`cargo fuzz run render_core`; a 60 s smoke runs on every PR,
+see ci.yml). A renderer change that byte-slices or un-clamps the viewport
+fails CI before it can trap the guest.
 
 ## Reproducible builds
 

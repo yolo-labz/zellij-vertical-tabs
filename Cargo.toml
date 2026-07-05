@@ -5,8 +5,18 @@ edition = "2024"
 description = "A robust vertical tab bar plugin for zellij"
 license = "MIT"
 
+# The pure rendering core (src/lib.rs: truncation + scroll-window math) builds
+# for the HOST too, so `cargo test` / proptest / cargo-fuzz run natively.
+# Everything zellij lives behind the wasm target gate: zellij-tile pulls
+# zellij-utils whose curl/openssl deps only compile for the host, and this repo
+# never builds the host plugin (same rationale as the flake).
 [dependencies]
-zellij-tile = "0.44.3"
 unicode-width = "0.2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+zellij-tile = "0.44.3"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 chrono-tz = "0.10"
+
+[dev-dependencies]
+proptest = "1"
