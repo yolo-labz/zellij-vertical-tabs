@@ -85,3 +85,68 @@ jobs:
 
       - name: Plugin artifact exists
         run: test -f target/wasm32-wasip1/release/zellij-vertical-tabs.wasm
+
+  test:
+    name: test (host proptest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-host-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-host-
+
+      # The pure core (src/lib.rs) builds natively — zellij deps are wasm-gated.
+      - run: cargo test --locked
+
+  fuzz-smoke:
+    name: fuzz smoke (nightly, 60s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@f808768d1510423e83855289c910610ca9b43176 # v2.17.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install nightly + cargo-fuzz
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo install cargo-fuzz --locked
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            fuzz/target
+          key: ${{ runner.os }}-cargo-fuzz-${{ hashFiles('Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-fuzz-
+
+      # 60s bounded libFuzzer run over the pure rendering core (trunc +
+      # scroll_window invariants). Long campaigns stay out of the PR path.
+      - run: cargo +nightly fuzz run render_core -- -max_total_time=60 -rss_limit_mb=2048

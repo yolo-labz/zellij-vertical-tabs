@@ -13,3 +13,10 @@ AGENTS.md
 .aider*
 /.specify/
 .github/copilot-instructions.md
+
+# cargo-fuzz (CI generates its own lock; corpora are ephemeral)
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+fuzz/coverage/
+fuzz/Cargo.lock
