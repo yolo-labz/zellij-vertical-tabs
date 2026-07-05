@@ -18,5 +18,7 @@ zellij-tile = "0.44.3"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 chrono-tz = "0.10"
 
-[dev-dependencies]
+# Host-only: proptest's process machinery (rusty-fork → wait-timeout) has no
+# wasi impl, and clippy --all-targets on the wasm target compiles test targets.
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 proptest = "1"

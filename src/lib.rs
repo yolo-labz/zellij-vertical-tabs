@@ -45,7 +45,9 @@ pub fn scroll_window(n: usize, area: usize, active: usize) -> usize {
     }
 }
 
-#[cfg(test)]
+// Host-only tests: proptest is a host-gated dev-dependency (no wasi support
+// in its process-spawning machinery).
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests {
     use super::*;
     use proptest::prelude::*;
