@@ -30,6 +30,13 @@ const RESET: &str = "\u{1b}[0m";
 const HEAD: usize = 6;
 const FOOT: usize = 3;
 
+// Build rev for the footer + manifest — set by the flake (self.shortRev);
+// plain `cargo build` yields "dev".
+const REV: &str = match option_env!("PLUGIN_REV") {
+    Some(r) => r,
+    None => "dev",
+};
+
 pub struct State {
     tabs: Vec<TabInfo>,
     session: String,
@@ -46,6 +53,7 @@ pub struct State {
     // like today until their first visit, then park when hidden.
     visible: bool,
     last_arm_ms: i64, // when the tick was last armed — drives dead-chain detection
+    last_manifest_ms: i64, // last tab-manifest write — throttles the tick refresh
     scroll_start: usize, // first visible tab index (set in render, read on click)
     tab_area_rows: usize,
 }
@@ -60,6 +68,7 @@ impl Default for State {
             armed: false,
             visible: true,
             last_arm_ms: 0,
+            last_manifest_ms: 0,
             scroll_start: 0,
             tab_area_rows: 0,
         }
@@ -101,6 +110,7 @@ impl ZellijPlugin for State {
                 self.heal_timer();
                 if self.tabs != tabs {
                     self.tabs = tabs;
+                    self.write_manifest();
                     true
                 } else {
                     false
@@ -108,7 +118,11 @@ impl ZellijPlugin for State {
             }
             Event::ModeUpdate(mi) => {
                 self.heal_timer();
-                self.session = mi.session_name.unwrap_or_default();
+                let session = mi.session_name.unwrap_or_default();
+                if session != self.session {
+                    self.session = session;
+                    self.write_manifest();
+                }
                 self.mode = format!("{:?}", mi.mode).to_uppercase();
                 true
             }
@@ -126,12 +140,18 @@ impl ZellijPlugin for State {
             Event::Timer(_) => {
                 // Firing <900 ms after the last arm means a duplicate chain
                 // (heal_timer false positive) — let this one die unrendered.
-                if Utc::now().timestamp_millis() - self.last_arm_ms < 900 {
+                let now_ms = Utc::now().timestamp_millis();
+                if now_ms - self.last_arm_ms < 900 {
                     return false;
                 }
                 self.armed = false;
                 if self.visible {
                     self.arm();
+                    // keep the manifest mtime fresh (~1/min) so a stale file
+                    // reliably means "session not alive", not "idle session"
+                    if now_ms - self.last_manifest_ms > 60_000 {
+                        self.write_manifest();
+                    }
                     true
                 } else {
                     false
@@ -239,7 +259,18 @@ impl ZellijPlugin for State {
                 s.push_str(RESET);
                 s
             } else if row == foot_end {
-                format!("{OVERLAY0}\u{2570}{}{RESET}", bar(inner))
+                // version@rev in the closing border — makes mixed-wasm fleets
+                // visible at a glance during rescue triage
+                let label = format!("{}@{}", env!("CARGO_PKG_VERSION"), REV);
+                let lw = UnicodeWidthStr::width(label.as_str());
+                if inner >= lw + 4 {
+                    format!(
+                        "{OVERLAY0}\u{2570}\u{2500} {OVERLAY1}{label}{OVERLAY0} {}{RESET}",
+                        bar(inner.saturating_sub(lw + 3))
+                    )
+                } else {
+                    format!("{OVERLAY0}\u{2570}{}{RESET}", bar(inner))
+                }
             } else {
                 format!("{OVERLAY0}\u{2502}{RESET}")
             };
@@ -299,6 +330,34 @@ impl State {
             self.armed = false;
             self.arm();
         }
+    }
+    // P1 rescue instrument: the visible instance mirrors the live tab set to
+    // /data/tab-manifest.txt (atomic tmp+rename). Written only from a LIVE
+    // session, so a stale mtime reliably means the session is gone — immune to
+    // the dead-session-dump poisoning class from the 04/07 incident. Restore
+    // tooling discovers it via glob + newest mtime + the in-file session name
+    // (host path: ~/.cache/zellij/<session>/<plugin-url>/<id>-<client>/).
+    // Failures are ignored on purpose: a rescue aid must never break rendering.
+    fn write_manifest(&mut self) {
+        if !self.visible || self.session.is_empty() {
+            return;
+        }
+        let now_ms = Utc::now().timestamp_millis();
+        let mut body = String::with_capacity(96 + self.tabs.len() * 32);
+        body.push_str("# zellij-vertical-tabs tab manifest v1\n");
+        body.push_str(&format!("plugin: {}@{}\n", env!("CARGO_PKG_VERSION"), REV));
+        body.push_str(&format!("session: {}\n", self.session));
+        body.push_str(&format!("written_ms: {}\n", now_ms));
+        body.push_str(&format!("tabs: {}\n", self.tabs.len()));
+        for (i, t) in self.tabs.iter().enumerate() {
+            let name = t.name.replace(['\n', '\t'], " ");
+            let mark = if t.active { "*" } else { "-" };
+            body.push_str(&format!("{}\t{}\t{}\n", i + 1, mark, name));
+        }
+        if std::fs::write("/data/tab-manifest.tmp", &body).is_ok() {
+            let _ = std::fs::rename("/data/tab-manifest.tmp", "/data/tab-manifest.txt");
+        }
+        self.last_manifest_ms = now_ms;
     }
     fn switch_rel(&mut self, d: i64) {
         let n = self.tabs.len() as i64;
