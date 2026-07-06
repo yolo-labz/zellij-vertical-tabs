@@ -11,7 +11,7 @@ Themed in Catppuccin Mocha.
 > Built because `cfal/zellij-vertical-tabs` crashes under heavy real load
 > (subscribing to `PaneUpdate` exhausts the wasm guest's 16 MB memory cap when
 > many TUIs redraw). This implementation subscribes only to the events a tab bar
-> actually needs. See `CLAUDE.md` for the load-bearing invariants.
+> actually needs. See `docs/design-principles.md` for the load-bearing invariants.
 
 ## Features
 
@@ -21,6 +21,37 @@ Themed in Catppuccin Mocha.
 - Scrolling viewport with `↑/↓` overflow counts — focused tab always visible
 - Mouse: click to switch, scroll wheel to cycle tabs
 - Per-tab `🔔` bell + `🔗` sync-panes indicators
+- Version badge (`0.1.0@rev`) in the footer border — spot stale/mixed plugin
+  builds across resurrected tabs at a glance
+- **Live tab manifest** for session-rescue tooling (see below)
+
+## Tab manifest (rescue instrument)
+
+The visible instance mirrors the tab set to `/data/tab-manifest.txt` on every
+tab change, plus a ~1/min freshness touch. Because it is written only from a
+*live* session, a stale mtime reliably means "session gone" — it cannot be
+poisoned by dumps against dead sessions the way `dump-layout`-based
+checkpoints can.
+
+Format (tab-separated; `*` marks the active tab):
+
+```text
+# zellij-vertical-tabs tab manifest v1
+plugin: 0.1.0@abc1234
+session: HOME
+written_ms: 1780000000000
+tabs: 35
+1	-	🔨 Rescue
+2	*	🧙 Merlin
+```
+
+Host-side discovery (the `/data` mount is per session + plugin instance):
+
+```bash
+grep -l '^session: HOME$' \
+  ~/.cache/zellij/*/*zellij-vertical-tabs*/*/tab-manifest.txt 2>/dev/null \
+  | xargs ls -t | head -1   # newest = the live writer
+```
 
 ## Build
 

@@ -42,6 +42,8 @@
         pname = "zellij-vertical-tabs";
         version = "0.1.0";
         src = ./.;
+        # Baked into the wasm via option_env! — footer badge + tab manifest.
+        PLUGIN_REV = self.shortRev or self.dirtyShortRev or "unknown";
         cargoDeps = rustPlatform.importCargoLock {lockFile = ./Cargo.lock;};
         nativeBuildInputs = [toolchain rustPlatform.cargoSetupHook];
         buildPhase = ''

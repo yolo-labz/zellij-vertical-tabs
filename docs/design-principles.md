@@ -46,6 +46,17 @@ heavy dependencies beyond `zellij-tile`, `unicode-width`, and `chrono`
 build stays tiny. Every added widget must justify its event subscription
 against the stability rule above.
 
+## Rescue instrument
+
+The visible instance mirrors the live tab set to `/data/tab-manifest.txt`
+(atomic tmp+rename; TabUpdate-driven + ~1/min freshness touch) and the footer
+border carries a `version@rev` badge (`PLUGIN_REV` baked by the flake). Born
+from the 04/07 double-kill restore: manifests written only from live sessions
+cannot be poisoned by dead-session dumps, and mixed-wasm fleets (resurrected
+tabs pin old store paths) become visible at a glance. Write failures are
+swallowed — a rescue aid must never break rendering. Full rationale:
+Brain Storm `Ideas/zellij-vtabs-as-rescue-instrument.md` (P1 + P3).
+
 ## Tested invariants
 
 The two functions that carry invariants 2 and 3 (`trunc`, `scroll_window`)
