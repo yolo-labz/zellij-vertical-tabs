@@ -57,6 +57,31 @@ tabs pin old store paths) become visible at a glance. Write failures are
 swallowed — a rescue aid must never break rendering. Full rationale:
 Brain Storm `Ideas/zellij-vtabs-as-rescue-instrument.md` (P1 + P3).
 
+**Rescue marks (P2).** A restore script can paint a per-tab status glyph on the
+sidebar so an operator watches convergence in place instead of polling `ps`:
+
+```sh
+zellij pipe --name rescue-mark -- '🔨 Rescue:wip'    # ⏳ in progress
+zellij pipe --name rescue-mark -- '🔨 Rescue:ok'     # ✅ converged
+zellij pipe --name rescue-mark -- '💳 Buy:fail'      # ❌ failed
+zellij pipe --name rescue-mark -- '🔨 Rescue:clear'  # remove one mark
+zellij pipe --name rescue-mark -- '*:clear'          # remove every mark
+```
+
+Payload is `<tab-name>:<state>` (split on the **last** colon, so names may
+contain colons; state is case-insensitive with aliases — `ok|done|ready`,
+`wip|pending|run|running`, `fail|err|error`, `clear|none`). The glyph renders
+in the existing bell/sync flair slot (width-2, self-coloured — no ANSI, no
+active-band reset). `pipe()` is a distinct trait method, **not** a subscribed
+event, so it is operator-driven and low-frequency — invariant 1 holds. The mark
+map is bounded three ways so a broadcast pipe can never grow the 16 MB guest:
+only names of **live** tabs are stored (map ≤ tab count), a hard `MAX_MARKS`
+backstop caps new keys, and each mark self-expires after `MARK_TTL_MS`
+(15 min), swept in both `render()` and `pipe()` (hidden instances never render,
+so the pipe path is their only sweep). Parsing lives in the pure core
+(`parse_rescue_mark`) and is proptested + fuzzed like `trunc`. See
+`examples/rescue-marks.sh` for a worked emit loop.
+
 ## Tested invariants
 
 The two functions that carry invariants 2 and 3 (`trunc`, `scroll_window`)

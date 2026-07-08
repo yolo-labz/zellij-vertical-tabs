@@ -12,7 +12,7 @@ use chrono_tz::Tz;
 use std::collections::BTreeMap;
 use unicode_width::UnicodeWidthStr;
 use zellij_tile::prelude::*;
-use zellij_vertical_tabs::{scroll_window, trunc};
+use zellij_vertical_tabs::{MarkKind, parse_rescue_mark, scroll_window, trunc};
 
 const MAUVE: &str = "\u{1b}[38;2;203;166;247m";
 const BLUE: &str = "\u{1b}[38;2;137;180;250m";
@@ -29,6 +29,14 @@ const RESET: &str = "\u{1b}[0m";
 
 const HEAD: usize = 6;
 const FOOT: usize = 3;
+
+// A rescue mark with no refresh self-expires after this long, so a rescue
+// script that crashes mid-restore cannot strand stale flair on the sidebar.
+const MARK_TTL_MS: i64 = 15 * 60_000;
+// Hard backstop on the mark map. It is already bounded by the live tab count
+// (only existing tabs are marked), but a pathological session cannot be allowed
+// to grow the 16 MB-capped guest — new keys past this cap are dropped.
+const MAX_MARKS: usize = 128;
 
 // Build rev for the footer + manifest — set by the flake (self.shortRev);
 // plain `cargo build` yields "dev".
@@ -56,6 +64,11 @@ pub struct State {
     last_manifest_ms: i64, // last tab-manifest write — throttles the tick refresh
     scroll_start: usize, // first visible tab index (set in render, read on click)
     tab_area_rows: usize,
+    // Rescue marks (P2): tab-name → (state, set_ms). Driven by `zellij pipe
+    // --name rescue-mark -- '<tab>:<state>'` during a restore so the operator
+    // watches convergence in-place. Bounded by the live tab count and
+    // TTL-swept every render, so it can never grow the guest's linear memory.
+    marks: BTreeMap<String, (MarkKind, i64)>,
 }
 impl Default for State {
     fn default() -> Self {
@@ -71,6 +84,7 @@ impl Default for State {
             last_manifest_ms: 0,
             scroll_start: 0,
             tab_area_rows: 0,
+            marks: BTreeMap::new(),
         }
     }
 }
@@ -180,10 +194,60 @@ impl ZellijPlugin for State {
         }
     }
 
+    // Rescue marks (P2). `pipe()` is a distinct trait method, NOT a subscribed
+    // event — it only fires when an operator (or a restore script) runs
+    // `zellij pipe`, so it is inherently low-frequency and invariant-1-safe.
+    // A pipe broadcasts to every sidebar instance (one per tab); each keeps its
+    // own mark map, so the sidebar shows the same marks whatever tab is focused.
+    // Marks touch no files — the P1 manifest is written only on TabUpdate, so
+    // there is no write-contention with this path.
+    fn pipe(&mut self, msg: PipeMessage) -> bool {
+        if msg.name != "rescue-mark" {
+            return false;
+        }
+        let Some(payload) = msg.payload.as_deref() else {
+            return false;
+        };
+        let Some((tab, kind)) = parse_rescue_mark(payload) else {
+            return false;
+        };
+        // Sweep expired marks on every pipe, not only in render(): a hidden
+        // instance never renders, so this is its ONLY chance to bound the map —
+        // a broadcast pipe must never grow the 16 MB-capped guest (invariant 1).
+        let now_ms = Utc::now().timestamp_millis();
+        self.marks
+            .retain(|_, &mut (_, set)| now_ms.saturating_sub(set) < MARK_TTL_MS);
+        match kind {
+            MarkKind::Clear if tab == "*" => self.marks.clear(),
+            MarkKind::Clear => {
+                self.marks.remove(&tab);
+            }
+            k => {
+                // Only mark a tab that actually exists — this bounds the map to
+                // the live tab count, so a broadcast pipe can't seed arbitrary
+                // keys on every instance. MAX_MARKS is a hard backstop; an
+                // existing key may always refresh.
+                let known = self.tabs.iter().any(|t| t.name == tab);
+                if known && (self.marks.contains_key(&tab) || self.marks.len() < MAX_MARKS) {
+                    self.marks.insert(tab, (k, now_ms));
+                }
+            }
+        }
+        // Only the on-screen instance needs to repaint; hidden ones stored the
+        // mark and repaint on their next Visible(true).
+        self.visible
+    }
+
     fn render(&mut self, rows: usize, cols: usize) {
         if !self.granted || cols < 10 || rows < HEAD + FOOT + 1 {
             return;
         }
+        // Drop rescue marks that outlived their TTL (a crashed rescue script
+        // must not strand flair). Cheap: the map is bounded by the tab count.
+        // saturating_sub: never trust the clock to be monotonic (invariant 3).
+        let now_ms = Utc::now().timestamp_millis();
+        self.marks
+            .retain(|_, &mut (_, set)| now_ms.saturating_sub(set) < MARK_TTL_MS);
         let inner = cols.saturating_sub(1);
         let bar = |n: usize| "\u{2500}".repeat(n);
         let now = Utc::now().with_timezone(&self.tz);
@@ -243,7 +307,10 @@ impl ZellijPlugin for State {
             } else if row >= HEAD && row < HEAD + tab_area {
                 let i = start + (row - HEAD);
                 match self.tabs.get(i) {
-                    Some(tab) => tab_line(tab, i + 1, inner),
+                    Some(tab) => {
+                        let mark = self.marks.get(&tab.name).map(|&(k, _)| k);
+                        tab_line(tab, i + 1, inner, mark)
+                    }
                     None => format!("{OVERLAY0}\u{2502}{RESET}"),
                 }
             } else if row == foot_div {
@@ -282,16 +349,35 @@ impl ZellijPlugin for State {
     }
 }
 
-fn tab_line(tab: &TabInfo, idx: usize, inner: usize) -> String {
+fn tab_line(tab: &TabInfo, idx: usize, inner: usize, mark: Option<MarkKind>) -> String {
     let mut flair = String::new();
+    // Rescue mark leads the flair cluster (right of the name). It is a width-2,
+    // self-coloured emoji, so it drops straight into the same char/width-safe
+    // path as the bell/sync flair — no ANSI, no active-band reset, and its
+    // width is folded into flair_w below like any other glyph.
+    if let Some(g) = mark.map(MarkKind::glyph).filter(|g| !g.is_empty()) {
+        flair.push(' ');
+        flair.push_str(g);
+    }
     if tab.is_sync_panes_active {
         flair.push_str(" \u{1f517}");
     }
     if tab.has_bell_notification {
         flair.push_str(" \u{1f514}");
     }
-    let flair_w = UnicodeWidthStr::width(flair.as_str());
-    let name = trunc(&tab.name, inner.saturating_sub(6 + flair_w).max(1));
+    // Keep the whole row within `inner`. The fixed lead (│ + 3-col gutter +
+    // 2-col index + space ≈ 6 cols) plus the flair must leave room for the
+    // name. On a pane too narrow to fit the advisory flair, DROP the flair and
+    // keep the name — the mark is a hint, the name is the point. No `.max(1)`
+    // here: when there is genuinely no room, trunc(_, 0) yields "" rather than
+    // forcing a column that overflows the pane width (invariant 2).
+    const LEAD: usize = 6;
+    let mut flair_w = UnicodeWidthStr::width(flair.as_str());
+    if LEAD + flair_w > inner {
+        flair.clear();
+        flair_w = 0;
+    }
+    let name = trunc(&tab.name, inner.saturating_sub(LEAD + flair_w));
     if tab.active {
         let body = format!(" \u{258c} {idx:>2} {name}{flair}");
         let pad = inner.saturating_sub(UnicodeWidthStr::width(body.as_str()));
