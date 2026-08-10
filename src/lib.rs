@@ -161,12 +161,41 @@ mod tests {
         // (trimmed) tab name — colons only ever split off the trailing state.
         #[test]
         fn parse_mark_preserves_tab(
-            tab in "[^:[:space:]][^:]{0,30}",
+            // `\s`, not `[[:space:]]`: the POSIX class is ASCII-only while the
+            // parser trims with Unicode-aware `str::trim`. That gap let the
+            // generator emit a lone U+0085 (NEL) — a name the parser correctly
+            // rejects as empty-after-trim, so the `unwrap()` below panicked on
+            // a payload this property was never meant to cover. It failed only
+            // when proptest happened to draw such a character, which is the
+            // worst kind: a real contradiction that presents as flake.
+            //
+            // Constraining the FIRST character is sufficient. A leading
+            // non-whitespace char means the name can neither trim to empty nor
+            // lose a leading character that `tab.trim_end()` would have kept.
+            tab in "[^:\\s][^:]{0,30}",
             st in prop::sample::select(vec!["ok", "wip", "fail", "clear", "done", "err", "pending"]),
         ) {
             let (got, _) = parse_rescue_mark(&format!("{tab}:{st}")).unwrap();
             prop_assert_eq!(got, tab.trim_end());
         }
+    }
+
+    // Pinned deterministically, because the generator fix above only stops the
+    // property from ASKING the wrong question — it does not record what the
+    // right answer is. Without this, someone meeting the old flake could
+    // "fix" it by deleting the empty-tab guard in `parse_rescue_mark` and
+    // every remaining test would still pass.
+    #[test]
+    fn a_whitespace_only_tab_is_rejected() {
+        // U+0085 NEL: not ASCII whitespace, but `str::trim` removes it.
+        assert_eq!(parse_rescue_mark("\u{85}:ok"), None);
+        assert_eq!(parse_rescue_mark("   :ok"), None);
+        assert_eq!(parse_rescue_mark(":ok"), None);
+        // A name that merely CONTAINS such a character is still a valid name.
+        assert_eq!(
+            parse_rescue_mark("a\u{85}b:ok"),
+            Some(("a\u{85}b".to_string(), MarkKind::Ok))
+        );
     }
 
     #[test]
