@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/notroot/Documents/Code/yolo-labz/zellij-vertical-tabs-092-media-swarm/docs/record-demo.py", line 80, in <module>
+    raise RuntimeError(f"synthetic layout not loaded: {names}")
+RuntimeError: synthetic layout not loaded: Tab #1

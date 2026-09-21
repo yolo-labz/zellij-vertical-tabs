@@ -75,6 +75,14 @@ Put it in your layout's `default_tab_template` next to `children` (children
 first → sidebar on the right). Grant `ReadApplicationState` +
 `ChangeApplicationState`.
 
+## Demonstration
+
+![Actual sidebar with synthetic example tabs](docs/assets/sidebar.gif)
+
+[MP4](docs/assets/sidebar.mp4) · [Poster](docs/assets/sidebar-poster.png) ·
+[Reproduce and inspect evidence](docs/MEDIA.md). Captured in an isolated Zellij
+0.44.3 session with 26 synthetic tabs; no personal workspace or audio.
+
 ## License
 
 MIT © Pedro H S Balbino

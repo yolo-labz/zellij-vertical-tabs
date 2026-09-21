@@ -1,0 +1,27 @@
+{
+  "zellij": "zellij 0.44.3",
+  "runtime_path": "/nix/store/hwf1kw0rk0kbmhwhmji08yhd8xlk8scx-zellij-unwrapped-0.44.3/bin/zellij",
+  "runtime_sha256": "2f962b2bd7d09049b53cc68635f565b779003cb8e1ca6e0bafeb722b26b56313",
+  "launch_argv": [
+    "/etc/profiles/per-user/notroot/bin/zellij",
+    "--config",
+    "/tmp/zvt-x7qhhwyi/config.kdl",
+    "--config-dir",
+    "/tmp/zvt-x7qhhwyi",
+    "--layout",
+    "/tmp/zvt-x7qhhwyi/demo.kdl"
+  ],
+  "capture_helper_sha256": "a8876949dfa3a657ce4e331d06f10250d5e23cd896afc4b0489e8548c8e5f150",
+  "wasm_path": "/nix/store/m4a24pmhzgsk3w8sd2ic21386r1iqzgv-zellij-vertical-tabs-0.1.0/lib/zellij-vertical-tabs.wasm",
+  "wasm_sha256": "e1e758ef42e0330db35f64130f3352231c64e671d2d79754f2d5febe8a922563",
+  "source_head": "20416c80a24fe831cf973b77bbefe72e878a6c32",
+  "requested_tabs": 26,
+  "dimensions_cells": [
+    110,
+    24
+  ],
+  "playback_speed": 1,
+  "audio": null,
+  "fixture": "synthetic tabs; isolated XDG dirs and HOME",
+  "duration_seconds": 24.799721165996743
+}
