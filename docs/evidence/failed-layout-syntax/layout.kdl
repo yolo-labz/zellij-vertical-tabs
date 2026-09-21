@@ -1,0 +1,36 @@
+layout {
+ default_tab_template {
+ pane split_direction="vertical" {
+ children
+ pane size=30 borderless=true {
+ plugin location="file:/nix/store/m4a24pmhzgsk3w8sd2ic21386r1iqzgv-zellij-vertical-tabs-0.1.0/lib/zellij-vertical-tabs.wasm" { timezone "America/Recife" }
+ }
+ }
+ }
+ tab name="Sample 01" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 02" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 03" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 04" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 05" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 06" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 07" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 08" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 09" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 10" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 11" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 12" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 13" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 14" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 15" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 16" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 17" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 18" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 19" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 20" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 21" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 22" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 23" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 24" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 25" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+ tab name="Sample 26" { pane command="/bin/sh" { args "-c" "printf 'Synthetic demo tab; isolated session\\nNo personal data\\n'; sleep 120"; close_on_exit true; } }
+}

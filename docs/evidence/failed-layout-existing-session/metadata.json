@@ -1,0 +1,16 @@
+{
+  "zellij": "zellij 0.44.3",
+  "wasm_path": "/nix/store/m4a24pmhzgsk3w8sd2ic21386r1iqzgv-zellij-vertical-tabs-0.1.0/lib/zellij-vertical-tabs.wasm",
+  "wasm_sha256": "e1e758ef42e0330db35f64130f3352231c64e671d2d79754f2d5febe8a922563",
+  "source_head": "20416c80a24fe831cf973b77bbefe72e878a6c32",
+  "dimensions_cells": [
+    110,
+    24
+  ],
+  "playback_speed": 1,
+  "audio": null,
+  "fixture": "synthetic tabs; isolated XDG dirs and HOME",
+  "duration_seconds": 0.1425128290138673,
+  "requested_tabs": 26,
+  "capture_validated": false
+}
