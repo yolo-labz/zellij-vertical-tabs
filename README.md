@@ -86,3 +86,8 @@ first → sidebar on the right). Grant `ReadApplicationState` +
 ## License
 
 MIT © Pedro H S Balbino
+
+---
+
+Part of **[yolo-labz](https://github.com/yolo-labz)** — small tools, deliberate automation.
+[Org profile](https://github.com/yolo-labz) · [All repositories](https://github.com/orgs/yolo-labz/repositories) · [Engineering notes](https://blog.home301server.com.br)
