@@ -10,7 +10,7 @@ that surface.
 |---|---|---|
 | T1 | Malicious/hostile input via tab names (emoji, control bytes, width tricks) crashing the renderer — a guest panic aborts the whole plugin | Char/width-safe rendering only (`unicode-width`, no byte slicing); all index/scroll arithmetic saturating + clamped. See `docs/design-principles.md`. |
 | T2 | Event-flood memory exhaustion (16 MB wasmi cap) | Low-frequency event subscriptions only — never `PaneUpdate`; visibility-gated timer. Load-bearing invariant, enforced at review. |
-| T3 | Supply-chain compromise of a dependency | Locked builds (`--locked`, `Cargo.lock` committed); OSV-Scanner on PR + weekly; Renovate with 3-day `minimumReleaseAge`; reproducible `nix build`. |
+| T3 | Supply-chain compromise of a dependency | Locked builds (`--locked`, `Cargo.lock` committed); OSV-Scanner on PR + weekly; Dependabot with a 3-day `cooldown`; reproducible `nix build`. |
 | T4 | Compromised CI publishing a tampered artifact | Actions SHA-pinned with version comments; `permissions: {}` deny-all + per-job re-grant; harden-runner; gitleaks; OpenSSF Scorecard published. |
 | T5 | Excessive plugin permissions | Requests only `ReadApplicationState` + `ChangeApplicationState` — no filesystem, no command execution, no web access. |
 
@@ -31,7 +31,7 @@ locally-patched builds are out of scope.
 
 These RustSec advisories sit in the lockfile via `zellij-tile 0.44.3 →
 zellij-utils → clap 3`, which is pinned to the runtime zellij version by
-design (see `renovate.json`); they are not fixable here without unpinning:
+design (see `.github/dependabot.yml`); they are not fixable here without unpinning:
 
 | Advisory | Crate | Why accepted |
 |---|---|---|
