@@ -1,0 +1,54 @@
+# Dependabot — the ecosystems this repository actually has, weekly on Monday.
+#
+# `cargo` covers the plugin crate (/) and its standalone fuzz workspace (/fuzz).
+# Not listed, on purpose:
+#   - `rust-toolchain`: the channel is "stable", so there is no version to move.
+#   - `nix`: flake inputs carry no semver, so they cannot join a minor+patch group and
+#     would open one unreviewable PR per input per week.
+# This file replaces renovate.json, which never ran: Renovate was not installed on the org,
+# so the repository had no update bot at all.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directories:
+      - /
+      - /fuzz
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Recife
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    # Supply-chain threat T3 in SECURITY.md: no release younger than three days.
+    cooldown:
+      default-days: 3
+    # zellij-tile is pinned to the runtime zellij (0.44.x). A minor or major only moves with
+    # the fleet's zellij upgrade, after the built wasm is tested against it. Patches still flow.
+    ignore:
+      - dependency-name: zellij-tile
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+    # Routine bumps arrive as one PR; a major arrives alone, for review.
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Actions are SHA-pinned; Dependabot moves the SHA and keeps the `# vX.Y.Z` comment in step.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Recife
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    cooldown:
+      default-days: 3
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
