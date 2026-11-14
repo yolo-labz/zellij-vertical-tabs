@@ -1,0 +1,21 @@
+# OSV-Scanner V2 configuration (auto-discovered at the repo root).
+# Every entry carries its rationale. Both crates are transitive dependencies of
+# zellij-tile (the plugin SDK, via clap 3 / structopt) with NO fixed version upstream;
+# they are compiled into the wasm plugin only through that SDK and never receive untrusted input here.
+# Drop these entries when zellij-tile moves off clap 3.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2021-0145"
+reason = "atty unaligned read on Windows only (custom allocator); transitive of zellij-tile via clap 3, no fix released; plugin builds for wasm32"
+
+[[IgnoredVulns]]
+id = "GHSA-g98v-hv3f-hcfr"
+reason = "alias of RUSTSEC-2021-0145 (atty), same rationale"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0375"
+reason = "atty unmaintained; transitive of zellij-tile via clap 3, no replacement possible from this repo"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = "proc-macro-error unmaintained; build-time proc macro of clap 3/structopt inside zellij-tile, no runtime effect"
