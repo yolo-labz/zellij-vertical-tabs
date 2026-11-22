@@ -25,15 +25,15 @@ reason = "proc-macro-error unmaintained; build-time proc macro of clap 3/structo
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0542"
-ignoreUntil = 2026-12-22
+effectiveUntil = 2026-12-22
 reason = "no patched version on 22/11/2026; review on expiry"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0543"
-ignoreUntil = 2026-12-22
+effectiveUntil = 2026-12-22
 reason = "no patched version on 22/11/2026; review on expiry"
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0555"
-ignoreUntil = 2026-12-22
+effectiveUntil = 2026-12-22
 reason = "no patched version on 22/11/2026; review on expiry"
