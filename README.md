@@ -18,10 +18,10 @@ Themed in Catppuccin Mocha.
 - Vertical tab list with index, emoji, name (char/width-safe truncation)
 - Framed panel: 🏠 session · 📅 date · 🕐 live clock · 🔒 mode · footer tab count
 - Active tab: mauve bar + bold + highlight band
-- Scrolling viewport with `↑/↓` overflow counts — focused tab always visible
+- Scrolling viewport with `↑/↓` overflow counts, focused tab always visible
 - Mouse: click to switch, scroll wheel to cycle tabs
 - Per-tab `🔔` bell + `🔗` sync-panes indicators
-- Version badge (`0.1.0@rev`) in the footer border — spot stale/mixed plugin
+- Version badge (`0.1.0@rev`) in the footer border, spot stale/mixed plugin
   builds across resurrected tabs at a glance
 - **Live tab manifest** for session-rescue tooling (see below)
 
@@ -29,7 +29,7 @@ Themed in Catppuccin Mocha.
 
 The visible instance mirrors the tab set to `/data/tab-manifest.txt` on every
 tab change, plus a ~1/min freshness touch. Because it is written only from a
-*live* session, a stale mtime reliably means "session gone" — it cannot be
+*live* session, a stale mtime reliably means "session gone", it cannot be
 poisoned by dumps against dead sessions the way `dump-layout`-based
 checkpoints can.
 
@@ -89,5 +89,5 @@ MIT © Pedro H S Balbino
 
 ---
 
-Part of **[yolo-labz](https://github.com/yolo-labz)** — small tools, deliberate automation.
+Part of **[yolo-labz](https://github.com/yolo-labz)**: small tools, deliberate automation.
 [Org profile](https://github.com/yolo-labz) · [All repositories](https://github.com/orgs/yolo-labz/repositories) · [Engineering notes](https://blog.home301server.com.br)
