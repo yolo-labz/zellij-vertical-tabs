@@ -19,3 +19,21 @@ reason = "atty unmaintained; transitive of zellij-tile via clap 3, no replacemen
 [[IgnoredVulns]]
 id = "RUSTSEC-2024-0370"
 reason = "proc-macro-error unmaintained; build-time proc macro of clap 3/structopt inside zellij-tile, no runtime effect"
+
+# Unfixed RustSec advisories, all informational "unmaintained" (no patched version, no severity).
+# Reviewed 22/11/2026. Expires 22/12/2026: re-review then.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0542"
+ignoreUntil = 2026-12-22
+reason = "no patched version on 22/11/2026; review on expiry"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+ignoreUntil = 2026-12-22
+reason = "no patched version on 22/11/2026; review on expiry"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0555"
+ignoreUntil = 2026-12-22
+reason = "no patched version on 22/11/2026; review on expiry"
